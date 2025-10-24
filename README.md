@@ -63,6 +63,85 @@ The system uses the existing `recommend()` function from `recommender.py` which:
 - Returns a difficulty rating between 0 and 1
 - Adapts to user performance patterns
 
+## Learning Modes & Hyperparameters
+
+The system offers three learning modes, each with different hyperparameters that control how the difficulty adjusts:
+
+### 🎓 **Learner Mode** (Gentle & Forgiving)
+- **KN = 0.6**: Lower attraction strength - slower difficulty adjustments
+- **KT = 0.05**: Minimal time penalty - less punishment for slow responses
+- **DELTA_T = 15s**: Longer target time - more time to think through problems
+- **Best for**: Beginners, students building confidence, or learning new concepts
+
+### ⚖️ **Normal Mode** (Balanced Progression)  
+- **KN = 0.8**: Moderate attraction strength - balanced difficulty changes
+- **KT = 0.1**: Standard time penalty - moderate speed expectations
+- **DELTA_T = 10s**: Average target time - reasonable thinking time
+- **Best for**: Most learners, general practice sessions, steady skill development
+
+### 🏎️ **Racer Mode** (Challenging & Fast-paced)
+- **KN = 1.0**: High attraction strength - rapid difficulty adjustments  
+- **KT = 0.15**: Strong time penalty - rewards quick thinking
+- **DELTA_T = 8s**: Short target time - encourages faster responses
+- **Best for**: Advanced users, competitive practice, skill assessment
+
+## Hyperparameter Details
+
+### **KN (Newton's Method Strength)**
+- **Range**: 0.0 - 1.0
+- **Purpose**: Controls how strongly the system tries to match your performance to the ideal learning curve
+- **Higher values**: Faster, more aggressive difficulty adjustments
+- **Lower values**: Gentler, more gradual difficulty changes
+
+### **KT (Time Penalty Factor)**
+- **Range**: 0.0 - 0.2  
+- **Purpose**: Determines how much slow response times affect difficulty
+- **Higher values**: Slower responses lead to bigger difficulty drops
+- **Lower values**: Response time has less impact on difficulty
+
+### **DELTA_T (Target Response Time)**
+- **Range**: 5s - 20s
+- **Purpose**: The "ideal" time expected for answering questions
+- **Higher values**: More thinking time allowed before penalties
+- **Lower values**: Encourages quicker decision making
+
+### **Additional Engine Parameters**
+- **RangeT = 0.1**: Question selection range around target difficulty
+- **ChangeT = 0.01**: Minimum difficulty change threshold  
+- **ExtraT = 0.05**: Buffer for question pool expansion
+- **NumQ = 30**: Number of questions to load in each batch
+
+## How Hyperparameters Work Together
+
+The recommendation engine uses an "**attract-and-follow**" mathematical model:
+
+1. **Ideal Performance Curve**: `f(x) = ln(1.7x + 1)`
+   - Represents the optimal difficulty progression for learning
+   - Your actual performance is compared to this ideal curve
+
+2. **Newton's Method Projection**: 
+   - Uses **KN** to control how strongly the system pulls you toward the ideal curve
+   - Higher KN = faster convergence to ideal performance
+
+3. **Time-based Adjustments**:
+   - **KT** applies penalties when response time exceeds **DELTA_T**  
+   - Formula: `time_penalty = KT × max(0, response_time - DELTA_T)`
+
+4. **Final Difficulty Calculation**:
+   ```
+   new_difficulty = projected_difficulty - time_penalty + hint_penalty
+   ```
+
+### **Choosing Your Mode**
+
+| Situation | Recommended Mode | Why |
+|-----------|------------------|-----|
+| Learning new concepts | **Learner** | Gentle adjustments build confidence |
+| Regular practice | **Normal** | Balanced challenge and support |
+| Testing your skills | **Racer** | Quick feedback reveals true ability |
+| Time pressure training | **Racer** | Builds speed and accuracy together |
+| Struggling with material | **Learner** | Reduces frustration, maintains motivation |
+
 ## File Structure
 
 ```
