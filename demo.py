@@ -1,5 +1,5 @@
 import numpy as np
-from recommender import recommend, backend
+from recommender import recommend, backend, get_mode_config, get_available_modes
 from typing import List, Dict, Tuple, Optional
 
 
@@ -19,6 +19,8 @@ class RecommendationEngine:
         self.current_difficulty: Optional[float] = None
         self.seen_question_ids: set = set()  # Track seen questions
         self.total_questions_count: int = 0  # Track total available questions from backend
+        self.mode: str = "Normal"  # Default mode
+        self.mode_params: dict = {}  # Mode-specific parameters for recommend function
         
         # Hyperparameters
         self.RangeT: float = 0.1  # Range around current difficulty for core questions
@@ -70,8 +72,25 @@ class RecommendationEngine:
         
         return self
     
-    
-    def set_hyperparameters(self, RangeT: Optional[float] = None, 
+    def set_mode(self, mode: str) -> 'RecommendationEngine':
+        """
+        Builder function to set the learning mode.
+        
+        Args:
+            mode: One of "Learner", "Normal", or "Racer"
+            
+        Returns:
+            Self for method chaining
+        """
+        available_modes = get_available_modes()
+        if mode not in available_modes:
+            raise ValueError(f"Invalid mode: {mode}. Available modes: {available_modes}")
+        
+        self.mode = mode
+        self.mode_params = get_mode_config(mode)
+        return self
+
+    def set_hyperparameters(self, RangeT: Optional[float] = None,
                           ChangeT: Optional[float] = None,
                           ExtraT: Optional[float] = None, 
                           NumQ: Optional[int] = None) -> 'RecommendationEngine':
@@ -185,7 +204,8 @@ class RecommendationEngine:
             self.response_times, 
             self.current_difficulty, 
             self.hints_used, 
-            self.question_responses
+            self.question_responses,
+            self.mode_params  # Pass mode-specific parameters
         )
         
         
@@ -299,7 +319,9 @@ class RecommendationEngine:
             'hints_used_count': hints_count,
             'questions_in_pool': len(self.current_question_pool),
             'seen_questions_count': len(self.seen_question_ids),
-            'total_questions_in_db': self.total_questions_count  # Updated by backend
+            'total_questions_in_db': self.total_questions_count,  # Updated by backend
+            'mode': self.mode,
+            'mode_params': self.mode_params
         }
 
 

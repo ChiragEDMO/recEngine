@@ -11,6 +11,61 @@ TARGETTIME = 10
 A_GATE = 10
 R_0 = 0.2
 
+# Mode configurations for different user types
+MODE_CONFIGS = {
+    "Learner": {
+        "KN": 0.6,           # Lower adaptation rate - more forgiving
+        "KT": 0.05,          # Lower tangent following - less aggressive
+        "DELTA_T": 0.05,     # Smaller steps - gentler difficulty changes
+        "TARGETTIME": 15,    # More time allowed - less pressure
+        "A_GATE": 8,         # Lower gate threshold - more patient
+        "R_0": 0.25,         # Larger error tolerance - more forgiving
+        "description": "Gentle learning mode with forgiving difficulty adjustments"
+    },
+    "Normal": {
+        "KN": 0.8,           # Current default values
+        "KT": 0.1,
+        "DELTA_T": 0.1,
+        "TARGETTIME": 10,
+        "A_GATE": 10,
+        "R_0": 0.2,
+        "description": "Balanced mode for typical learning pace"
+    },
+    "Racer": {
+        "KN": 1.0,           # Higher adaptation rate - more responsive
+        "KT": 0.15,          # Higher tangent following - more aggressive
+        "DELTA_T": 0.15,     # Larger steps - faster difficulty changes
+        "TARGETTIME": 7,     # Less time allowed - more pressure
+        "A_GATE": 12,        # Higher gate threshold - less patient
+        "R_0": 0.15,         # Smaller error tolerance - more challenging
+        "description": "Fast-paced mode for quick learners and challenges"
+    }
+}
+
+def get_mode_config(mode: str) -> dict:
+    """
+    Get the configuration parameters for a specific mode.
+    
+    Args:
+        mode: One of "Learner", "Normal", or "Racer"
+        
+    Returns:
+        Dictionary containing mode-specific parameters
+    """
+    if mode not in MODE_CONFIGS:
+        raise ValueError(f"Unknown mode: {mode}. Available modes: {list(MODE_CONFIGS.keys())}")
+    
+    return MODE_CONFIGS[mode].copy()
+
+def get_available_modes() -> list:
+    """
+    Get list of available modes.
+    
+    Returns:
+        List of available mode names
+    """
+    return list(MODE_CONFIGS.keys())
+
 # Using the function f(x) = ln(1.7x + 1) for 0 < x <= 1
 def f(x):
     """Ideal performance curve: ln(1.7x + 1)."""
@@ -40,21 +95,39 @@ def f_double_prime(x):
 #     tan_val = np.tan(x_clip / 1.3)
 #     return (2 / (1.3**2)) * sec2 * tan_val
 
-def recommend(response_times, current_difficulty, hints_used, past_responses) -> float:
+def recommend(response_times, current_difficulty, hints_used, past_responses, mode_params=None) -> float:
     """
     Recommend a new difficulty score based on past responses, response times, and hint usage.
     This function implements an "attract-and-follow" model.
+    
+    Args:
+        response_times: List of response times
+        current_difficulty: Current difficulty level
+        hints_used: List of hint usage flags
+        past_responses: List of (difficulty, correctness) tuples
+        mode_params: Optional dict with mode-specific parameters (KN, KT, DELTA_T, etc.)
     """
-    k_n = KN 
-    k_t = KT
-    delta_t = DELTA_T
+    # Use mode-specific parameters if provided, otherwise use defaults
+    if mode_params:
+        k_n = mode_params.get('KN', KN)
+        k_t = mode_params.get('KT', KT)
+        delta_t = mode_params.get('DELTA_T', DELTA_T)
+        target_time = mode_params.get('TARGETTIME', TARGETTIME)
+        a_gate = mode_params.get('A_GATE', A_GATE)
+        r0 = mode_params.get('R_0', R_0)
+    else:
+        k_n = KN 
+        k_t = KT
+        delta_t = DELTA_T
+        target_time = TARGETTIME
+        a_gate = A_GATE
+        r0 = R_0
 
     x0 = current_difficulty
     correct = past_responses[-1][1]
     hint_used = hints_used[-1]
     time_taken = response_times[-1]
 
-    target_time = TARGETTIME
     time_penalty = max(0, (time_taken - target_time) / target_time)
 
     if correct and not hint_used:
@@ -84,8 +157,6 @@ def recommend(response_times, current_difficulty, hints_used, past_responses) ->
     tangent_vec = np.array([1, f_prime(x_star)])
     tangent_hat = tangent_vec / np.linalg.norm(tangent_vec)
 
-    r0 = R_0
-    a_gate = A_GATE
     sigma = 1.0 / (1.0 + np.exp(a_gate * (error_norm - r0)))
 
     v = -k_n * error_vec + k_t * sigma * tangent_hat

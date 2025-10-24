@@ -4,6 +4,7 @@ import json
 import time
 import plotly.graph_objects as go
 from demo import RecommendationEngine
+from recommender import get_available_modes, get_mode_config
 import numpy as np
 
 # Set page configuration
@@ -77,6 +78,7 @@ if 'initialized' not in st.session_state:
     st.session_state.last_hint_used = False
     st.session_state.last_is_correct = False
     st.session_state.recommendation_engine = None
+    st.session_state.selected_mode = "Normal"  # Default mode
 
 # Load questions data
 @st.cache_data
@@ -309,6 +311,32 @@ def main():
     st.title("🎯 Adaptive Question System")
     st.markdown("---")
     
+    # Mode selection
+    st.header("🎯 Choose Your Learning Mode")
+    available_modes = get_available_modes()
+    mode_descriptions = {
+        "Learner": "🎓 Gentle learning with forgiving difficulty adjustments",
+        "Normal": "⚖️ Balanced progression for most learners", 
+        "Racer": "🏎️ Challenging mode with rapid difficulty increases"
+    }
+
+    selected_mode = st.selectbox(
+        "Select your learning style:",
+        options=available_modes,
+        index=available_modes.index(st.session_state.selected_mode),
+        format_func=lambda x: f"{x} - {mode_descriptions.get(x, '')}"
+    )
+
+    # Update mode if changed
+    if selected_mode != st.session_state.selected_mode:
+        st.session_state.selected_mode = selected_mode
+        # Update the recommendation engine mode when it's initialized
+        if st.session_state.recommendation_engine is not None:
+            st.session_state.recommendation_engine.set_mode(selected_mode)
+        st.rerun()
+
+    st.markdown("---")
+    
     # Load questions data
     if st.session_state.questions_df is None:
         with st.spinner("Loading questions..."):
@@ -341,6 +369,8 @@ def main():
             
             # Initialize the recommendation engine
             st.session_state.recommendation_engine = initialize_recommendation_engine(initial_difficulty)
+            # Set the selected mode
+            st.session_state.recommendation_engine.set_mode(st.session_state.selected_mode)
             
             st.rerun()
     
@@ -470,6 +500,14 @@ def main():
                         with col_stats3:
                             st.metric("Seen Questions", stats['seen_questions_count'])
                             st.metric("Total in DB", stats.get('total_questions_in_db', 'Unknown'))
+                        
+                        # Add mode information
+                        st.markdown("---")
+                        mode_info = f"**Current Mode:** {st.session_state.selected_mode}"
+                        if 'mode_params' in stats and stats['mode_params']:
+                            mode_params = stats['mode_params']
+                            mode_info += f" (KN: {mode_params.get('KN', 'N/A')}, KT: {mode_params.get('KT', 'N/A')}, ΔT: {mode_params.get('DELTA_T', 'N/A')})"
+                        st.markdown(mode_info)
                 
                 # Inline next question button
                 col_next1, col_next2, col_next3 = st.columns([2, 2, 2])
