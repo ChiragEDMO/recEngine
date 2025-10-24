@@ -17,7 +17,7 @@ MODE_CONFIGS = {
         "KN": 0.6,           # Lower adaptation rate - more forgiving
         "KT": 0.05,          # Lower tangent following - less aggressive
         "DELTA_T": 0.05,     # Smaller steps - gentler difficulty changes
-        "TARGETTIME": 15,    # More time allowed - less pressure
+        "TARGETTIME": 30,    # More time allowed - less pressure
         "A_GATE": 8,         # Lower gate threshold - more patient
         "R_0": 0.25,         # Larger error tolerance - more forgiving
         "description": "Gentle learning mode with forgiving difficulty adjustments"
@@ -26,7 +26,7 @@ MODE_CONFIGS = {
         "KN": 0.8,           # Current default values
         "KT": 0.1,
         "DELTA_T": 0.1,
-        "TARGETTIME": 10,
+        "TARGETTIME": 15,
         "A_GATE": 10,
         "R_0": 0.2,
         "description": "Balanced mode for typical learning pace"
@@ -35,7 +35,7 @@ MODE_CONFIGS = {
         "KN": 1.0,           # Higher adaptation rate - more responsive
         "KT": 0.15,          # Higher tangent following - more aggressive
         "DELTA_T": 0.15,     # Larger steps - faster difficulty changes
-        "TARGETTIME": 7,     # Less time allowed - more pressure
+        "TARGETTIME": 10,     # Less time allowed - more pressure
         "A_GATE": 12,        # Higher gate threshold - less patient
         "R_0": 0.15,         # Smaller error tolerance - more challenging
         "description": "Fast-paced mode for quick learners and challenges"

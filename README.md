@@ -70,19 +70,28 @@ The system offers three learning modes, each with different hyperparameters that
 ### 🎓 **Learner Mode** (Gentle & Forgiving)
 - **KN = 0.6**: Lower attraction strength - slower difficulty adjustments
 - **KT = 0.05**: Minimal time penalty - less punishment for slow responses
-- **DELTA_T = 15s**: Longer target time - more time to think through problems
+- **DELTA_T = 0.05**: Smaller adjustment steps - gentler difficulty changes
+- **TARGETTIME = 30s**: More time allowed - less pressure
+- **A_GATE = 8**: Lower gate threshold - more patient with errors
+- **R_0 = 0.25**: Larger error tolerance - more forgiving of mistakes
 - **Best for**: Beginners, students building confidence, or learning new concepts
 
 ### ⚖️ **Normal Mode** (Balanced Progression)  
 - **KN = 0.8**: Moderate attraction strength - balanced difficulty changes
 - **KT = 0.1**: Standard time penalty - moderate speed expectations
-- **DELTA_T = 10s**: Average target time - reasonable thinking time
+- **DELTA_T = 0.1**: Standard adjustment steps - balanced difficulty changes
+- **TARGETTIME = 15s**: Average target time - reasonable thinking time
+- **A_GATE = 10**: Standard gate threshold - typical error sensitivity
+- **R_0 = 0.2**: Standard error tolerance - balanced mistake handling
 - **Best for**: Most learners, general practice sessions, steady skill development
 
 ### 🏎️ **Racer Mode** (Challenging & Fast-paced)
 - **KN = 1.0**: High attraction strength - rapid difficulty adjustments  
 - **KT = 0.15**: Strong time penalty - rewards quick thinking
-- **DELTA_T = 8s**: Short target time - encourages faster responses
+- **DELTA_T = 0.15**: Larger adjustment steps - faster difficulty changes
+- **TARGETTIME = 10s**: Short target time - encourages faster responses
+- **A_GATE = 12**: Higher gate threshold - less patient with errors
+- **R_0 = 0.15**: Smaller error tolerance - more challenging mistake handling
 - **Best for**: Advanced users, competitive practice, skill assessment
 
 ## Hyperparameter Details
@@ -99,11 +108,31 @@ The system offers three learning modes, each with different hyperparameters that
 - **Higher values**: Slower responses lead to bigger difficulty drops
 - **Lower values**: Response time has less impact on difficulty
 
-### **DELTA_T (Target Response Time)**
-- **Range**: 5s - 20s
+### **DELTA_T (Adjustment Step Size)**
+- **Range**: 0.01 - 0.20
+- **Purpose**: Controls the size of difficulty adjustment steps
+- **Higher values**: Larger, faster difficulty changes
+- **Lower values**: Smaller, more gradual difficulty changes
+
+### **TARGETTIME (Expected Response Time)**
+- **Range**: 5s - 30s
 - **Purpose**: The "ideal" time expected for answering questions
 - **Higher values**: More thinking time allowed before penalties
 - **Lower values**: Encourages quicker decision making
+
+### **A_GATE (Gate Threshold)**
+- **Range**: 5 - 15
+- **Purpose**: Controls sensitivity to performance errors using a sigmoid gate function
+- **Higher values**: Less sensitive to small errors, more patient system
+- **Lower values**: More sensitive to errors, quicker to adjust difficulty
+- **Technical**: Used in sigmoid function `σ = 1/(1 + e^(A_GATE × (error - R_0)))`
+
+### **R_0 (Error Tolerance)**
+- **Range**: 0.1 - 0.3
+- **Purpose**: Sets the baseline error threshold before the system reacts
+- **Higher values**: More tolerant of mistakes, slower to penalize
+- **Lower values**: Less tolerant, quicker to reduce difficulty when struggling
+- **Technical**: Works with A_GATE to determine when the system should respond to errors
 
 ### **Additional Engine Parameters**
 - **RangeT = 0.1**: Question selection range around target difficulty
@@ -123,13 +152,19 @@ The recommendation engine uses an "**attract-and-follow**" mathematical model:
    - Uses **KN** to control how strongly the system pulls you toward the ideal curve
    - Higher KN = faster convergence to ideal performance
 
-3. **Time-based Adjustments**:
-   - **KT** applies penalties when response time exceeds **DELTA_T**  
-   - Formula: `time_penalty = KT × max(0, response_time - DELTA_T)`
+3. **Error-Sensitive Gating**:
+   - **Sigmoid Gate**: `σ = 1/(1 + e^(A_GATE × (error_norm - R_0)))`
+   - **A_GATE** controls how sharply the system responds to errors
+   - **R_0** sets the error threshold where the system starts reacting
 
-4. **Final Difficulty Calculation**:
+4. **Time-based Adjustments**:
+   - **KT** applies penalties when response time exceeds **TARGETTIME**  
+   - Formula: `time_penalty = KT × max(0, (response_time - TARGETTIME) / TARGETTIME)`
+
+5. **Final Difficulty Calculation**:
    ```
-   new_difficulty = projected_difficulty - time_penalty + hint_penalty
+   velocity = -KN × error_vector + KT × σ × tangent_direction
+   new_difficulty = current_difficulty + DELTA_T × velocity
    ```
 
 ### **Choosing Your Mode**
